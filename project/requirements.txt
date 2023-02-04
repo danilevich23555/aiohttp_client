@@ -1,0 +1,6 @@
+aiobotocore
+aiohttp
+marshmallow
+marshmallow-dataclass
+python-decouple
+

@@ -1,0 +1,17 @@
+services:
+  backend:
+    build: .
+    image: new_python
+    depends_on:
+      - minio
+  minio:
+    image: minio/minio:latest
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    environment:
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_HTTP_TRACE: /tmp/minio
+      DSN_MINIO: http://127.0.0.1:9000
+    command: [ "server", "--console-address", ":9001", "/data" ]
