@@ -3,7 +3,7 @@ import os
 from decouple import config
 from aiobotocore.session import get_session
 
-from tg import TgClientWithFile
+from api import TgClient as TgClientWithFile
 from dcs import SendMessageResponse, GetUpdatesResponse, Message
 from s3 import S3Client
 

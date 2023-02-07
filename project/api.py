@@ -1,22 +1,24 @@
-from typing import Optional, List
+from typing import Optional, List, Any
+
+import aiohttp
 from marshmallow.exceptions import ValidationError
 from base import ClientError, Client
-from dcs import UpdateObj, Message, SendMessageResponse
+from dcs import UpdateObj, Message, SendMessageResponse, File, GetFileResponse
 
 
 class TgClientError(ClientError):
     pass
 
 
-class TgClient(Client):
-    BASE_PATH = 'https://api.telegram.org/bot'
-    API_FILE_PATH = 'https://api.telegram.org/file/bot'
+class TgClient(Client):  #todo Можно вынести все
+    BASE_PATH = 'https://api.telegram.org/bot' #todo вынести в .env идет повторение в Client
+    API_FILE_PATH = 'https://api.telegram.org/file/bot' #todo вынести в .env идет повторение в Client
 
     def __init__(self, token: str = ''):
         self.token = token
         super().__init__()
 
-    async def _handle_response(self, resp):
+    async def _handle_response(self, resp) -> Any:
         return await resp.json()
 
     def get_path(self, url):
@@ -40,3 +42,43 @@ class TgClient(Client):
         except ValidationError:
                     raise TgClientError
         return sm_response.result
+
+
+    async def get_file(self, file_id: str) -> File:
+        url = f'{self.get_base_path()}{self.token}' + '/getFile'
+        async with aiohttp.ClientSession() as session:                 #todo поменял на один контекстный менеджер aiohttp.ClientSession сам по себе контекстный менеджер
+            response = await session.get(url, params={'file_id': file_id})
+            res = await self._handle_response(response)
+            try:
+                gf_response: GetFileResponse = GetFileResponse.Schema().load(res)
+            except ValidationError:
+                raise TgClientError
+            return gf_response.result
+
+    async def download_file(self, file_path: str, destination_path: str):
+        url = f'{self.API_FILE_PATH}{self.token}/{file_path}'
+        async with aiohttp.ClientSession() as session: #todo заменить как на 14 и 15 строчке
+            async with session.get(url) as resp:
+                print(resp.status)
+                # if resp.status != 200:
+                #     raise TgClientError
+                with open(destination_path, 'wb') as fd:
+                    async for data in resp.content.iter_chunked(1024):
+                        print(data)
+                        fd.write(data)
+
+    async def send_document(self, chat_id, document_path):
+        url = f'{self.get_base_path()}{self.token}' + '/sendDocument'
+        async with aiohttp.ClientSession() as session: #todo заменить как на 14 и 15 строчке
+            with open(document_path, 'rb') as fd:
+                form_data = aiohttp.FormData()
+                form_data.add_field('document', fd)
+                form_data.add_field('chat_id', str(chat_id))
+                async with session.post(url, data=form_data) as resp:
+                    print(resp.status)
+                    res_dict = await self._handle_response(resp)
+                    try:
+                        sm_response: SendMessageResponse = SendMessageResponse.Schema().load(res_dict)
+                    except ValidationError:
+                        raise TgClientError
+                    return sm_response.result

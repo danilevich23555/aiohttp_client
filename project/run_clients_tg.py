@@ -1,7 +1,7 @@
 import asyncio
 import os
 
-from tg import TgClientWithFile
+from api import TgClient as TgClientWithFile
 from dcs import SendMessageResponse, GetUpdatesResponse, Message
 
 

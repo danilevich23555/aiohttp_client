@@ -11,8 +11,8 @@ class ClientError(Exception):
 
 
 class Client:
-    BASE_PATH = 'https://api.telegram.org/bot'
-    API_FILE_PATH = 'https://api.telegram.org/file/bot'
+    BASE_PATH = 'https://api.telegram.org/bot'  #todo вынести в .env
+    API_FILE_PATH = 'https://api.telegram.org/file/bot' #todo вынести в .env
 
     def __init__(self):
         self.session = aiohttp.ClientSession()
@@ -35,5 +35,7 @@ class Client:
         return resp
 
     async def _perform_request(self, method: str, url: str, **kwargs) -> Any:
-        async with self.session.request(method, url, **kwargs) as resp:
-            return await self._handle_response(resp)
+        async with self.session as session:      #todo давай работать с сессиями единобразно
+            res = await session.request(method, url, **kwargs)
+            return await self._handle_response(res)
+
